@@ -10,27 +10,6 @@ from keras_facenet import FaceNet
 
 path = 0
 
-def visualize(input, faces, thickness=2):
-    if faces[1] is not None:
-        for idx, face in enumerate(faces[1]):
-            # print('Face {}, top-left coordinates: ({:.0f}, {:.0f}), box width: {:.0f}, box height {:.0f}, score: {:.2f}'.format(idx, face[0], face[1], face[2], face[3], face[-1]))
-            coords = face[:-1].astype(np.int32)
-            cv.rectangle(input, (coords[0], coords[1]), (coords[0]+coords[2], coords[1]+coords[3]), (0, 255, 0), thickness)
-            cv.circle(input, (coords[4], coords[5]), 2, (255, 0, 0), thickness)
-            cv.circle(input, (coords[6], coords[7]), 2, (0, 0, 255), thickness)
-            cv.circle(input, (coords[8], coords[9]), 2, (0, 255, 0), thickness)
-            cv.circle(input, (coords[10], coords[11]), 2, (255, 0, 255), thickness)
-            cv.circle(input, (coords[12], coords[13]), 2, (0, 255, 255), thickness)
-    # cv.putText(input, (1, 16), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-def gaussian(left_r=-80, right_r=80, sigma=75):
-    x = np.array([i for i in range(left_r, right_r)])
-
-    y = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- (x ** 2) / (2 * sigma ** 2))
-    y = y.reshape((y.shape[0], 1))
-
-    return y
-
 cap = cv.VideoCapture(path)
 print("[INFO] Opening camera...")
 time.sleep(1.0)
@@ -61,7 +40,7 @@ while True:
         break
 
     frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    flow = cv.calcOpticalFlowFarneback(old_gray, frame_gray, None, 0.5, 3, 20, 3, 5, 1.1, 1)
+    flow = cv.optflow.calcOpticalFlowDenseRLOF(old_gray, frame_gray, None, 0.5, 3, 20, 3, 5, 1.1, 1)
     fx, fy = flow[:,:,0], flow[:,:,1]
     v = np.sqrt(fx*fx+fy*fy)
     old_gray = frame_gray.copy()

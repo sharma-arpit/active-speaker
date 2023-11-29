@@ -50,3 +50,12 @@ def rotate_face(face_img, angle, bounding_box, centre):
     y = centre[1] - int(h/2)
 
     return face[y:y+h, x:x+w]
+
+
+def gaussian(left_r=-80, right_r=80, sigma=75):
+    x = np.array([i for i in range(left_r, right_r)])
+
+    y = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- (x ** 2) / (2 * sigma ** 2))
+    y = y.reshape((y.shape[0], 1))
+
+    return y
