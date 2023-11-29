@@ -1,12 +1,14 @@
 import numpy as np
 import cv2 as cv
 import time
+from helper import *
 import numpy as np
 from matplotlib import pyplot as plt
 from statistics import median
+from keras_facenet import FaceNet
 
-path = "/Users/arpitsharma/Downloads/Video.mp4"
-model = "/Users/arpitsharma/Downloads/face_detection_yunet_2022mar.onnx"
+
+path = 0
 
 def visualize(input, faces, thickness=2):
     if faces[1] is not None:
@@ -33,20 +35,14 @@ cap = cv.VideoCapture(path)
 print("[INFO] Opening camera...")
 time.sleep(1.0)
 if not cap.isOpened():
-    print("Cannot open capera")
+    print("Cannot open camera")
     exit()
 
 _, frame = cap.read()
 old_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 font = cv.FONT_HERSHEY_SIMPLEX
 
-detector = cv.FaceDetectorYN.create(
-    model,
-    "",
-    (320, 320),
-    0.9,
-    0.2
-)
+detector = FaceNet()
 
 activity = []
 avg = []
@@ -70,18 +66,19 @@ while True:
     v = np.sqrt(fx*fx+fy*fy)
     old_gray = frame_gray.copy()
 
-    detector.setInputSize((frame.shape[1], frame.shape[0]))
-    faces = detector.detect(frame)
-    # print(faces)
+    faces, crops = detector.crop(frame, threshold=0.99)
+    face_images = None
+
     ratio = 0
-    if faces[1] is not None:
-        for face in faces[1]:
-            coords = face[:-1].astype(np.int32)
-            (x, y, w, h) = (coords[0], coords[1], coords[2], coords[3] + (coords[3] * 0.05).astype(np.int32))
+    if len(faces) > 0:
+        for face in faces:
+            x, y, w, h = face['box']
 
             (startX, startY, endX, endY) = (x, y, x + w, y + h)
 
-            # check detect_face for returning value
+            cropped_face, angle, centre = visualize_face(frame, face)
+            img = rotate_face(cropped_face, angle, face['box'], centre)
+            img = cv.resize(img, (120, 160), interpolation=cv.INTER_CUBIC)
 
             cv.rectangle(frame, (startX, startY), (endX, endY), (255, 255, 255), 2)
             heat_map = np.zeros_like(frame[startY:endY, startX:endX])
@@ -102,9 +99,13 @@ while True:
             score1 += np.sum(y_horizontal * image[int(h / 2):h, 0:w])
 
             # print(min(15, score1 / score2), score2, score1)
-            cv.imshow('image', image)
             ratio = min(15, score1 / score2)
             fps = cap.get(cv.CAP_PROP_FPS)
+
+            face_images = np.concatenate((image, cv.cvtColor(img, cv.COLOR_BGR2GRAY)), axis=1)
+
+    if face_images is not None:
+        cv.imshow("image", face_images)
 
     activity.append(ratio)
     if frameCounter % 10 == 0:
